@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}TaskMaster{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #151820;
+      --card:      #1c2030;
+      --border:    #2a2f42;
+      --accent:    #5b8af5;
+      --accent2:   #a78bfa;
+      --success:   #34d399;
+      --danger:    #f87171;
+      --warning:   #fbbf24;
+      --text:      #e2e8f0;
+      --muted:     #6b7280;
+      --high:      #f87171;
+      --medium:    #fbbf24;
+      --low:       #34d399;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius:    12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      min-height: 100vh;
+    }
+
+    /* ---- NAV ---- */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .nav-links { display: flex; gap: 1rem; align-items: center; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--card); }
+    .nav-user {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .nav-user span { color: var(--accent); }
+
+    /* ---- LAYOUT ---- */
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* ---- ALERTS ---- */
+    .alerts { margin-bottom: 1.5rem; }
+    .alert {
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-left: 4px solid;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    .alert-success { background: #0d2a1e; border-color: var(--success); color: var(--success); }
+    .alert-error   { background: #2a0d0d; border-color: var(--danger);  color: var(--danger);  }
+    .alert-warning { background: #2a1f0d; border-color: var(--warning); color: var(--warning); }
+    .alert-info    { background: #0d1a2a; border-color: var(--accent);  color: var(--accent);  }
+
+    /* ---- BUTTONS ---- */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 20px;
+      border: none; border-radius: 8px;
+      font-family: var(--font-body); font-size: 0.9rem; font-weight: 500;
+      cursor: pointer; text-decoration: none;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .btn-primary  { background: var(--accent);  color: #fff; }
+    .btn-primary:hover  { background: #4a7ae0; transform: translateY(-1px); }
+    .btn-success  { background: var(--success); color: #0d2a1e; }
+    .btn-danger   { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+    .btn-danger:hover   { background: var(--danger); color: #fff; }
+    .btn-ghost    { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover    { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+
+    /* ---- FORMS ---- */
+    .form-group { margin-bottom: 1.2rem; }
+    label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 500; color: var(--muted); }
+    input[type=text], input[type=email], input[type=password], input[type=date],
+    textarea, select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-family: var(--font-body); font-size: 0.95rem;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(91,138,245,0.12);
+    }
+    textarea { resize: vertical; min-height: 100px; }
+    select option { background: var(--surface); }
+
+    /* ---- CARDS ---- */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    /* ---- PAGE TITLE ---- */
+    .page-title {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 0.3rem;
+      letter-spacing: -0.5px;
+    }
+    .page-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+
+    /* ---- PRIORITY BADGES ---- */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-high   { background: rgba(248,113,113,0.15); color: var(--high); }
+    .badge-medium { background: rgba(251,191,36,0.15);  color: var(--medium); }
+    .badge-low    { background: rgba(52,211,153,0.15);  color: var(--low); }
+    .badge-done   { background: rgba(52,211,153,0.1);   color: var(--success); }
+    .badge-pending{ background: rgba(107,114,128,0.15); color: var(--muted); }
+
+    /* ---- AUTH WRAPPER ---- */
+    .auth-wrap {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(91,138,245,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(167,139,250,0.06) 0%, transparent 60%);
+    }
+    .auth-box {
+      width: 100%; max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+    }
+    .auth-logo {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+      margin-bottom: 0.4rem;
+    }
+    .auth-tagline { text-align: center; color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .auth-footer  { text-align: center; margin-top: 1.2rem; font-size: 0.88rem; color: var(--muted); }
+    .auth-footer a { color: var(--accent); text-decoration: none; }
+  </style>
+  {% block extra_style %}{% endblock %}
+</head>
+<body>
+
+{% if session.user_id %}
+<nav>
+  <div class="nav-brand">⚡ TaskMaster</div>
+  <div class="nav-links">
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('new_task') }}">+ New Task</a>
+  </div>
+  <div class="nav-user">
+    Hello, <span>{{ session.username }}</span> &nbsp;·&nbsp;
+    <a href="{{ url_for('logout') }}" style="color:var(--muted);text-decoration:none;font-size:0.85rem;">Logout</a>
+  </div>
+</nav>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+<script>
+  // Auto-dismiss alerts after 4 seconds
+  setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(a => {
+      a.style.transition = 'opacity 0.5s';
+      a.style.opacity = '0';
+      setTimeout(() => a.remove(), 500);
+    });
+  }, 4000);
+</script>
+</body>
+</html>

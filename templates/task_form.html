@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}{% if task %}Edit Task{% else %}New Task{% endif %} – TaskMaster{% endblock %}
+
+{% block extra_style %}
+<style>
+  .form-wrap {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+  }
+  .priority-group {
+    display: flex; gap: 0.8rem;
+  }
+  .priority-option { flex: 1; }
+  .priority-option input[type=radio] { display: none; }
+  .priority-label {
+    display: block;
+    padding: 10px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    color: var(--muted);
+  }
+  .priority-option input[type=radio]:checked + .priority-label {
+    color: #fff;
+  }
+  .priority-option.high   input:checked + .priority-label { background: var(--high);    border-color: var(--high); color: #fff; }
+  .priority-option.medium input:checked + .priority-label { background: var(--medium);  border-color: var(--medium); color: #1a1a1a; }
+  .priority-option.low    input:checked + .priority-label { background: var(--low);     border-color: var(--low);  color: #1a1a1a; }
+  .priority-label:hover { border-color: var(--accent); color: var(--text); }
+  .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="alerts">
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="form-wrap">
+    <h1 class="page-title">{% if task %}Edit Task{% else %}New Task{% endif %}</h1>
+    <p class="page-sub">{% if task %}Update the details below.{% else %}Fill in your task details.{% endif %}</p>
+
+    <div class="form-card">
+      <form method="POST">
+
+        <div class="form-group">
+          <label for="title">Task Title *</label>
+          <input type="text" id="title" name="title" placeholder="What do you need to do?"
+                 value="{{ task.title if task else '' }}" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+          <textarea id="description" name="description" placeholder="Add more details...">{{ task.description if task else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Priority</label>
+          <div class="priority-group">
+            {% set cur_priority = task.priority if task else 'medium' %}
+            <div class="priority-option high">
+              <input type="radio" id="p-high" name="priority" value="high" {% if cur_priority == 'high' %}checked{% endif %}>
+              <label class="priority-label" for="p-high">🔴 High</label>
+            </div>
+            <div class="priority-option medium">
+              <input type="radio" id="p-medium" name="priority" value="medium" {% if cur_priority == 'medium' %}checked{% endif %}>
+              <label class="priority-label" for="p-medium">🟡 Medium</label>
+            </div>
+            <div class="priority-option low">
+              <input type="radio" id="p-low" name="priority" value="low" {% if cur_priority == 'low' %}checked{% endif %}>
+              <label class="priority-label" for="p-low">🟢 Low</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="due_date">Due Date <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+          <input type="date" id="due_date" name="due_date"
+                 value="{{ task.due_date.strftime('%Y-%m-%d') if task and task.due_date else '' }}">
+        </div>
+
+        {% if task %}
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>⏳ Pending</option>
+            <option value="done"    {% if task.status == 'done'    %}selected{% endif %}>✅ Done</option>
+          </select>
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            {% if task %}💾 Save Changes{% else %}✅ Create Task{% endif %}
+          </button>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

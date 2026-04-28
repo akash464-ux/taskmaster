@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard – TaskMaster{% endblock %}
+
+{% block extra_style %}
+<style>
+  /* ---- STATS GRID ---- */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-icon { font-size: 1.8rem; }
+  .stat-num  { font-family: var(--font-head); font-size: 2rem; font-weight: 800; line-height: 1; }
+  .stat-lbl  { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+  .stat-card.overdue .stat-num { color: var(--danger); }
+  .stat-card.done    .stat-num { color: var(--success); }
+  .stat-card.pending .stat-num { color: var(--warning); }
+
+  /* ---- TOOLBAR ---- */
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.8rem;
+    align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .toolbar-left { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .filter-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.82rem; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .filter-btn.high.active   { background: var(--high);    border-color: var(--high); }
+  .filter-btn.medium.active { background: var(--medium);  border-color: var(--medium); color: #1a1a1a; }
+  .filter-btn.low.active    { background: var(--low);     border-color: var(--low);  color: #1a1a1a; }
+
+  /* ---- SORT ---- */
+  .sort-select {
+    padding: 6px 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); font-size: 0.82rem; cursor: pointer;
+  }
+
+  /* ---- TASK LIST ---- */
+  .task-list { display: flex; flex-direction: column; gap: 0.7rem; }
+
+  .task-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.2rem;
+    display: flex; align-items: center; gap: 1rem;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .task-item::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  }
+  .task-item.high   ::before, .task-item.high   { border-left: 3px solid var(--high); }
+  .task-item.medium { border-left: 3px solid var(--medium); }
+  .task-item.low    { border-left: 3px solid var(--low); }
+  .task-item:hover  { border-color: var(--accent); transform: translateX(2px); }
+  .task-item.done   { opacity: 0.55; }
+
+  .task-check {
+    width: 22px; height: 22px; flex-shrink: 0;
+    border: 2px solid var(--border); border-radius: 6px;
+    background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .task-check:hover { border-color: var(--success); }
+  .task-item.done .task-check {
+    background: var(--success); border-color: var(--success);
+  }
+  .task-check .checkmark { display: none; color: #0d2a1e; font-size: 13px; font-weight: 800; }
+  .task-item.done .task-check .checkmark { display: block; }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-title {
+    font-weight: 600; font-size: 0.97rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .task-item.done .task-title { text-decoration: line-through; color: var(--muted); }
+  .task-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 5px; align-items: center; }
+  .task-due {
+    font-size: 0.78rem; color: var(--muted);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .task-due.overdue { color: var(--danger); font-weight: 600; }
+  .task-desc {
+    font-size: 0.82rem; color: var(--muted);
+    margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 500px;
+  }
+
+  .task-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+  /* ---- EMPTY STATE ---- */
+  .empty-state {
+    text-align: center; padding: 4rem 2rem;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+  .empty-state h3 { font-family: var(--font-head); font-size: 1.2rem; color: var(--text); margin-bottom: 0.4rem; }
+
+  /* ---- SECTION HEADING ---- */
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .section-head h2 { font-family: var(--font-head); font-size: 1rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .task-count { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; font-size: 0.78rem; color: var(--muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="alerts">
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Header -->
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <div>
+      <h1 class="page-title">My Tasks</h1>
+      <p class="page-sub" style="margin-bottom:0">
+        {% set today_str = today.strftime('%A, %B %d') %}
+        {{ today_str }}
+      </p>
+    </div>
+    <a href="{{ url_for('new_task') }}" class="btn btn-primary">＋ New Task</a>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">📋</div>
+      <div>
+        <div class="stat-num">{{ total }}</div>
+        <div class="stat-lbl">Total Tasks</div>
+      </div>
+    </div>
+    <div class="stat-card pending">
+      <div class="stat-icon">⏳</div>
+      <div>
+        <div class="stat-num">{{ pending }}</div>
+        <div class="stat-lbl">Pending</div>
+      </div>
+    </div>
+    <div class="stat-card done">
+      <div class="stat-icon">✅</div>
+      <div>
+        <div class="stat-num">{{ done }}</div>
+        <div class="stat-lbl">Completed</div>
+      </div>
+    </div>
+    <div class="stat-card overdue">
+      <div class="stat-icon">🔥</div>
+      <div>
+        <div class="stat-num">{{ overdue }}</div>
+        <div class="stat-lbl">Overdue</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar: Filters + Sort -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <!-- Status filters -->
+      <a href="?status=all&priority={{ filter_priority }}&sort={{ sort_by }}"
+         class="filter-btn {% if filter_status == 'all' %}active{% endif %}">All</a>
+      <a href="?status=pending&priority={{ filter_priority }}&sort={{ sort_by }}"
+         class="filter-btn {% if filter_status == 'pending' %}active{% endif %}">Pending</a>
+      <a href="?status=done&priority={{ filter_priority }}&sort={{ sort_by }}"
+         class="filter-btn {% if filter_status == 'done' %}active{% endif %}">Done</a>
+
+      <span style="width:1px; background:var(--border); height:20px; margin: 0 4px;"></span>
+
+      <!-- Priority filters -->
+      <a href="?status={{ filter_status }}&priority=all&sort={{ sort_by }}"
+         class="filter-btn {% if filter_priority == 'all' %}active{% endif %}">All Priority</a>
+      <a href="?status={{ filter_status }}&priority=high&sort={{ sort_by }}"
+         class="filter-btn high {% if filter_priority == 'high' %}active{% endif %}">🔴 High</a>
+      <a href="?status={{ filter_status }}&priority=medium&sort={{ sort_by }}"
+         class="filter-btn medium {% if filter_priority == 'medium' %}active{% endif %}">🟡 Medium</a>
+      <a href="?status={{ filter_status }}&priority=low&sort={{ sort_by }}"
+         class="filter-btn low {% if filter_priority == 'low' %}active{% endif %}">🟢 Low</a>
+    </div>
+
+    <!-- Sort -->
+    <div>
+      <select class="sort-select" onchange="window.location=this.value">
+        <option value="?status={{ filter_status }}&priority={{ filter_priority }}&sort=due_date"  {% if sort_by=='due_date'  %}selected{% endif %}>Sort: Due Date</option>
+        <option value="?status={{ filter_status }}&priority={{ filter_priority }}&sort=priority"  {% if sort_by=='priority'  %}selected{% endif %}>Sort: Priority</option>
+        <option value="?status={{ filter_status }}&priority={{ filter_priority }}&sort=created"   {% if sort_by=='created'   %}selected{% endif %}>Sort: Newest</option>
+        <option value="?status={{ filter_status }}&priority={{ filter_priority }}&sort=title"     {% if sort_by=='title'     %}selected{% endif %}>Sort: A–Z</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Task List -->
+  <div class="section-head">
+    <h2>Tasks</h2>
+    <span class="task-count">{{ tasks | length }} shown</span>
+  </div>
+
+  {% if tasks %}
+    <div class="task-list">
+      {% for task in tasks %}
+        {% set is_overdue = task.due_date and task.due_date < today and task.status != 'done' %}
+        <div class="task-item {{ task.priority }} {% if task.status == 'done' %}done{% endif %}">
+
+          <!-- Toggle complete -->
+          <form method="POST" action="{{ url_for('toggle_task', task_id=task.id) }}" style="display:contents">
+            <button type="submit" class="task-check" title="Toggle complete">
+              <span class="checkmark">✓</span>
+            </button>
+          </form>
+
+          <!-- Body -->
+          <div class="task-body">
+            <div class="task-title">{{ task.title }}</div>
+            {% if task.description %}
+              <div class="task-desc">{{ task.description }}</div>
+            {% endif %}
+            <div class="task-meta">
+              <span class="badge badge-{{ task.priority }}">{{ task.priority }}</span>
+              <span class="badge {% if task.status == 'done' %}badge-done{% else %}badge-pending{% endif %}">
+                {{ task.status }}
+              </span>
+              {% if task.due_date %}
+                <span class="task-due {% if is_overdue %}overdue{% endif %}">
+                  {% if is_overdue %}⚠️{% else %}📅{% endif %}
+                  {{ task.due_date.strftime('%b %d, %Y') }}
+                  {% if is_overdue %}<strong>(Overdue)</strong>{% endif %}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="task-actions">
+            <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-ghost btn-sm">✏️ Edit</a>
+            <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}"
+                  onsubmit="return confirm('Delete this task?')" style="display:inline">
+              <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="empty-state">
+      <div class="icon">🎯</div>
+      <h3>No tasks found</h3>
+      <p style="margin-bottom:1.5rem">
+        {% if filter_status != 'all' or filter_priority != 'all' %}
+          Try clearing your filters, or
+        {% else %}
+          You're all clear!
+        {% endif %}
+      </p>
+      <a href="{{ url_for('new_task') }}" class="btn btn-primary">＋ Add your first task</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
