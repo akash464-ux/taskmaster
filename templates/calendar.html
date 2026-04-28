@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Calendar – TaskMaster{% endblock %}
+
+{% block extra_style %}
+<style>
+  .cal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .cal-nav { display: flex; align-items: center; gap: 1rem; }
+  .cal-nav a {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 14px; color: var(--text);
+    text-decoration: none; font-size: 1rem; transition: all 0.2s;
+  }
+  .cal-nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .cal-month-name {
+    font-family: var(--font-head); font-size: 1.5rem; font-weight: 800;
+    min-width: 220px; text-align: center;
+  }
+
+  /* Grid */
+  .cal-grid {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+  .cal-weekdays {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .cal-weekday {
+    padding: 10px; text-align: center;
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted);
+  }
+  .cal-weeks { display: flex; flex-direction: column; }
+  .cal-week  { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .cal-day {
+    min-height: 110px; padding: 8px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    position: relative; transition: background 0.15s;
+    cursor: default;
+  }
+  .cal-day:last-child { border-right: none; }
+  .cal-week:last-child .cal-day { border-bottom: none; }
+  .cal-day.empty { background: rgba(0,0,0,0.15); }
+  .cal-day.today { background: rgba(91,138,245,0.07); }
+  .cal-day.all-done { background: rgba(52,211,153,0.07); }
+  .cal-day.has-pending { background: rgba(248,113,113,0.05); }
+
+  .day-num {
+    font-family: var(--font-head); font-size: 0.95rem; font-weight: 700;
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; margin-bottom: 4px;
+  }
+  .cal-day.today .day-num {
+    background: var(--accent); color: #fff;
+  }
+  .cal-day.all-done .day-num  { background: var(--success); color: #0d2a1e; }
+  .cal-day.has-pending .day-num { color: var(--danger); }
+
+  /* Day status dot */
+  .day-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .day-dot.red   { background: var(--danger); }
+  .day-dot.green { background: var(--success); }
+
+  /* Task chips */
+  .day-tasks { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+  .day-chip {
+    font-size: 0.7rem; font-weight: 600;
+    padding: 2px 6px; border-radius: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .day-chip.high   { background: rgba(248,113,113,0.2); color: var(--high); }
+  .day-chip.medium { background: rgba(251,191,36,0.2);  color: var(--medium); }
+  .day-chip.low    { background: rgba(52,211,153,0.2);  color: var(--low); }
+  .day-chip.done   { background: rgba(107,114,128,0.15); color: var(--muted); text-decoration: line-through; }
+
+  .more-chip {
+    font-size: 0.68rem; color: var(--muted); padding: 1px 4px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 1.5rem; margin-top: 1rem;
+    font-size: 0.82rem; color: var(--muted); flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot  { width: 10px; height: 10px; border-radius: 50%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- Header -->
+  <div class="cal-header">
+    <div>
+      <h1 class="page-title">Calendar</h1>
+      <p class="page-sub" style="margin-bottom:0">Task overview by date</p>
+    </div>
+    <div style="display:flex; gap:1rem; align-items:center;">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">← Dashboard</a>
+      <a href="{{ url_for('new_task') }}"  class="btn btn-primary">＋ New Task</a>
+    </div>
+  </div>
+
+  <!-- Month Navigation -->
+  <div class="cal-nav" style="justify-content:center; margin-bottom:1.5rem;">
+    <a href="{{ url_for('calendar', year=prev_year, month=prev_month) }}">‹</a>
+    <span class="cal-month-name">{{ month_name }} {{ year }}</span>
+    <a href="{{ url_for('calendar', year=next_year, month=next_month) }}">›</a>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="cal-grid">
+    <div class="cal-weekdays">
+      {% for d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+        <div class="cal-weekday">{{ d }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="cal-weeks">
+      {% for week in cal %}
+      <div class="cal-week">
+        {% for day in week %}
+          {% if day == 0 %}
+            <div class="cal-day empty"></div>
+          {% else %}
+            {% set day_tasks = tasks_by_day.get(day, []) %}
+            {% set pending_count = day_tasks | selectattr('status', 'equalto', 'pending') | list | length %}
+            {% set done_count    = day_tasks | selectattr('status', 'equalto', 'done')    | list | length %}
+            {% set is_today      = (today.year == year and today.month == month and today.day == day) %}
+            {% set all_done      = (day_tasks | length > 0 and pending_count == 0) %}
+            {% set has_pending   = pending_count > 0 %}
+
+            <div class="cal-day
+                        {% if is_today %}today{% endif %}
+                        {% if all_done %}all-done{% elif has_pending %}has-pending{% endif %}">
+
+              <div class="day-num">{{ day }}</div>
+
+              {% if day_tasks %}
+                {% if all_done %}
+                  <div class="day-dot green"></div>
+                {% elif has_pending %}
+                  <div class="day-dot red"></div>
+                {% endif %}
+
+                <div class="day-tasks">
+                  {% for task in day_tasks[:3] %}
+                    <div class="day-chip {% if task.status == 'done' %}done{% else %}{{ task.priority }}{% endif %}"
+                         title="{{ task.title }}">
+                      {{ task.title[:18] }}{% if task.title|length > 18 %}…{% endif %}
+                    </div>
+                  {% endfor %}
+                  {% if day_tasks|length > 3 %}
+                    <div class="more-chip">+{{ day_tasks|length - 3 }} more</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Today</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div> Has pending tasks</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div> All tasks done ✓</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--high)"></div> High priority</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--medium)"></div> Medium priority</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--low)"></div> Low priority</div>
+  </div>
+
+</div>
+{% endblock %}

@@ -208,6 +208,7 @@
   <div class="nav-brand">⚡ TaskMaster</div>
   <div class="nav-links">
     <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('calendar') }}">📅 Calendar</a>
     <a href="{{ url_for('new_task') }}">+ New Task</a>
   </div>
   <div class="nav-user">
@@ -220,14 +221,91 @@
 {% block content %}{% endblock %}
 
 <script>
-  // Auto-dismiss alerts after 4 seconds
+  // Auto-dismiss alerts
   setTimeout(() => {
     document.querySelectorAll('.alert').forEach(a => {
-      a.style.transition = 'opacity 0.5s';
-      a.style.opacity = '0';
+      a.style.transition = 'opacity 0.5s'; a.style.opacity = '0';
       setTimeout(() => a.remove(), 500);
     });
   }, 4000);
+
+  // ============================================================
+  //  ALARM & NOTIFICATION SYSTEM
+  // ============================================================
+  {% if session.user_id %}
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  function playAlarmSound(isHigh) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const times = isHigh ? 4 : 1;
+    for (let i = 0; i < times; i++) {
+      setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = isHigh ? 880 : 520;
+        osc.type = isHigh ? 'square' : 'sine';
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.6);
+      }, i * 400);
+    }
+  }
+
+  function flashScreen() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;background:rgba(248,113,113,0.25);animation:flashAnim 0.4s ease-in-out 3;';
+    const style = document.createElement('style');
+    style.textContent = '@keyframes flashAnim{0%,100%{opacity:0}50%{opacity:1}}';
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 1400);
+  }
+
+  function showToast(title, priority) {
+    const colors = { high:'#f87171', medium:'#fbbf24', low:'#34d399' };
+    const icons  = { high:'🚨', medium:'🔔', low:'💬' };
+    const toast  = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9998;background:#1c2030;border:2px solid '+colors[priority]+';border-radius:14px;padding:16px 20px;min-width:280px;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:DM Sans,sans-serif;animation:toastIn 0.4s ease;';
+    const styleEl = document.createElement('style');
+    styleEl.textContent = '@keyframes toastIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}';
+    document.head.appendChild(styleEl);
+    toast.innerHTML = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-size:1.4rem">'+icons[priority]+'</span><strong style="color:'+colors[priority]+';font-size:0.9rem;text-transform:uppercase;letter-spacing:1px;">'+priority+' priority alarm</strong></div><div style="color:#e2e8f0;font-size:0.95rem;font-weight:600;">'+title+'</div><div style="color:#6b7280;font-size:0.78rem;margin-top:4px;">Click to dismiss</div>';
+    toast.onclick = () => toast.remove();
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.transition='opacity 0.5s'; toast.style.opacity='0'; setTimeout(()=>toast.remove(),500); }, priority==='high'?10000:6000);
+  }
+
+  function sendBrowserNotification(title, priority) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const icons = { high:'🚨', medium:'🔔', low:'💬' };
+      new Notification(icons[priority]+' TaskMaster Alarm', { body: title });
+    }
+  }
+
+  function fireAlarm(task) {
+    playAlarmSound(task.priority === 'high');
+    showToast(task.title, task.priority);
+    sendBrowserNotification(task.title, task.priority);
+    if (task.priority === 'high') flashScreen();
+  }
+
+  async function checkAlarms() {
+    try {
+      const res  = await fetch('/api/alarms');
+      const data = await res.json();
+      data.forEach(task => fireAlarm(task));
+    } catch(e) {}
+  }
+
+  checkAlarms();
+  setInterval(checkAlarms, 30000);
+
+  {% endif %}
 </script>
 </body>
 </html>

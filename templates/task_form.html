@@ -3,54 +3,50 @@
 
 {% block extra_style %}
 <style>
-  .form-wrap {
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  .form-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2rem;
-  }
-  .priority-group {
-    display: flex; gap: 0.8rem;
-  }
+  .form-wrap { max-width: 640px; margin: 0 auto; }
+  .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; }
+  .priority-group { display: flex; gap: 0.8rem; }
   .priority-option { flex: 1; }
   .priority-option input[type=radio] { display: none; }
   .priority-label {
-    display: block;
-    padding: 10px;
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    text-align: center;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    color: var(--muted);
+    display: block; padding: 10px; border: 2px solid var(--border);
+    border-radius: 10px; text-align: center; cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; transition: all 0.2s; color: var(--muted);
   }
-  .priority-option input[type=radio]:checked + .priority-label {
-    color: #fff;
-  }
-  .priority-option.high   input:checked + .priority-label { background: var(--high);    border-color: var(--high); color: #fff; }
-  .priority-option.medium input:checked + .priority-label { background: var(--medium);  border-color: var(--medium); color: #1a1a1a; }
-  .priority-option.low    input:checked + .priority-label { background: var(--low);     border-color: var(--low);  color: #1a1a1a; }
+  .priority-option.high   input:checked + .priority-label { background: var(--high);   border-color: var(--high);   color: #fff; }
+  .priority-option.medium input:checked + .priority-label { background: var(--medium); border-color: var(--medium); color: #1a1a1a; }
+  .priority-option.low    input:checked + .priority-label { background: var(--low);    border-color: var(--low);    color: #1a1a1a; }
   .priority-label:hover { border-color: var(--accent); color: var(--text); }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .alarm-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem; margin-top: 0.5rem;
+  }
+  .alarm-box .alarm-title {
+    font-size: 0.85rem; font-weight: 700; color: var(--accent);
+    margin-bottom: 0.8rem; display: flex; align-items: center; gap: 6px;
+  }
+  .alarm-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; cursor: pointer; }
+  .alarm-toggle input { width: auto; }
+  .alarm-fields { display: none; }
+  .alarm-fields.visible { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
   .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+
+  .section-label {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin: 1.5rem 0 0.8rem;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="alerts">
-        {% for cat, msg in messages %}
-          <div class="alert alert-{{ cat }}">{{ msg }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
+    {% if messages %}<div class="alerts">{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}</div>{% endif %}
   {% endwith %}
 
   <div class="form-wrap">
@@ -60,23 +56,27 @@
     <div class="form-card">
       <form method="POST">
 
+        <!-- Title -->
         <div class="form-group">
           <label for="title">Task Title *</label>
-          <input type="text" id="title" name="title" placeholder="What do you need to do?"
+          <input type="text" id="title" name="title"
+                 placeholder="What do you need to do?"
                  value="{{ task.title if task else '' }}" required autofocus>
         </div>
 
+        <!-- Description -->
         <div class="form-group">
           <label for="description">Description <span style="color:var(--muted);font-weight:400">(optional)</span></label>
           <textarea id="description" name="description" placeholder="Add more details...">{{ task.description if task else '' }}</textarea>
         </div>
 
+        <!-- Priority -->
         <div class="form-group">
           <label>Priority</label>
           <div class="priority-group">
             {% set cur_priority = task.priority if task else 'medium' %}
             <div class="priority-option high">
-              <input type="radio" id="p-high" name="priority" value="high" {% if cur_priority == 'high' %}checked{% endif %}>
+              <input type="radio" id="p-high"   name="priority" value="high"   {% if cur_priority == 'high'   %}checked{% endif %}>
               <label class="priority-label" for="p-high">🔴 High</label>
             </div>
             <div class="priority-option medium">
@@ -84,20 +84,55 @@
               <label class="priority-label" for="p-medium">🟡 Medium</label>
             </div>
             <div class="priority-option low">
-              <input type="radio" id="p-low" name="priority" value="low" {% if cur_priority == 'low' %}checked{% endif %}>
+              <input type="radio" id="p-low"    name="priority" value="low"    {% if cur_priority == 'low'    %}checked{% endif %}>
               <label class="priority-label" for="p-low">🟢 Low</label>
             </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="due_date">Due Date <span style="color:var(--muted);font-weight:400">(optional)</span></label>
-          <input type="date" id="due_date" name="due_date"
-                 value="{{ task.due_date.strftime('%Y-%m-%d') if task and task.due_date else '' }}">
+        <!-- Due Date & Time -->
+        <p class="section-label">📅 Due Date & Time</p>
+        <div class="row-2">
+          <div class="form-group">
+            <label for="due_date">Due Date</label>
+            <input type="date" id="due_date" name="due_date"
+                   value="{{ task.due_date.strftime('%Y-%m-%d') if task and task.due_date else '' }}">
+          </div>
+          <div class="form-group">
+            <label for="due_time">Due Time <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <input type="time" id="due_time" name="due_time"
+                   value="{{ task.due_time.strftime('%H:%M') if task and task.due_time else '' }}">
+          </div>
+        </div>
+
+        <!-- Alarm -->
+        <p class="section-label">🔔 Alarm / Reminder</p>
+        <div class="alarm-box">
+          <label class="alarm-toggle">
+            <input type="checkbox" id="alarm-toggle"
+                   {% if task and task.alarm_time %}checked{% endif %}>
+            <span style="font-size:0.9rem; font-weight:600; color:var(--text);">Set an alarm for this task</span>
+          </label>
+          <div class="alarm-fields {% if task and task.alarm_time %}visible{% endif %}" id="alarm-fields">
+            <div class="form-group">
+              <label for="alarm_date">Alarm Date</label>
+              <input type="date" id="alarm_date" name="alarm_date"
+                     value="{{ task.alarm_time.strftime('%Y-%m-%d') if task and task.alarm_time else '' }}">
+            </div>
+            <div class="form-group">
+              <label for="alarm_time_field">Alarm Time</label>
+              <input type="time" id="alarm_time_field" name="alarm_time_field"
+                     value="{{ task.alarm_time.strftime('%H:%M') if task and task.alarm_time else '' }}">
+            </div>
+          </div>
+          <p style="font-size:0.78rem; color:var(--muted); margin-top:0.5rem;">
+            🔴 High priority → loud alarm + flash &nbsp;|&nbsp;
+            🟡 Medium / 🟢 Low → pop notification
+          </p>
         </div>
 
         {% if task %}
-        <div class="form-group">
+        <div class="form-group" style="margin-top:1.2rem;">
           <label for="status">Status</label>
           <select id="status" name="status">
             <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>⏳ Pending</option>
@@ -117,4 +152,16 @@
     </div>
   </div>
 </div>
+
+<script>
+  const toggle = document.getElementById('alarm-toggle');
+  const fields = document.getElementById('alarm-fields');
+  toggle.addEventListener('change', () => {
+    fields.classList.toggle('visible', toggle.checked);
+    if (!toggle.checked) {
+      document.getElementById('alarm_date').value = '';
+      document.getElementById('alarm_time_field').value = '';
+    }
+  });
+</script>
 {% endblock %}

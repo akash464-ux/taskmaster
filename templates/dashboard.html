@@ -26,6 +26,26 @@
   .stat-card.done    .stat-num { color: var(--success); }
   .stat-card.pending .stat-num { color: var(--warning); }
 
+
+  /* ---- PROGRESS BAR ---- */
+  .progress-wrap {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .progress-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .progress-label  { font-size:0.85rem; font-weight:600; color:var(--muted); }
+  .progress-pct    { font-family:var(--font-head); font-size:1.1rem; font-weight:800; color:var(--success); }
+  .progress-bar-bg {
+    height: 10px; background: var(--surface);
+    border-radius: 99px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--success), #6ee7b7);
+    transition: width 1s cubic-bezier(.17,.67,.35,1);
+  }
+
   /* ---- TOOLBAR ---- */
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 0.8rem;
@@ -190,7 +210,21 @@
     </div>
   </div>
 
-  <!-- Toolbar: Filters + Sort -->
+
+  <!-- Progress Bar -->
+  {% if total > 0 %}
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <span class="progress-label">Overall Completion</span>
+      <span class="progress-pct">{{ progress }}%</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" style="width: {{ progress }}%"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Toolbar
   <div class="toolbar">
     <div class="toolbar-left">
       <!-- Status filters -->
